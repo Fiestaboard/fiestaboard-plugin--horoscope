@@ -1,6 +1,6 @@
 # Horoscope Setup
 
-Show the daily horoscope for your zodiac sign on your board, using the free [Horoscope App API](https://horoscope-app-api.vercel.app/).
+Show the daily horoscope for your zodiac sign on your board, using the free [Horoscope API](https://freehoroscopeapi.com/).
 
 ## Overview
 
@@ -10,7 +10,7 @@ Show the daily horoscope for your zodiac sign on your board, using the free [Hor
 - No API key required
 
 **Prerequisites:**
-- Internet connection (to reach `horoscope-app-api.vercel.app`)
+- Internet connection (to reach `freehoroscopeapi.com`)
 - No API key needed — the service is free and open
 
 ## Quick Setup
@@ -119,7 +119,7 @@ The header is the sign and date; the reading is word-wrapped across the remainin
 
 ## API Information
 
-- **Endpoint:** `GET https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Aries&day=TODAY`
+- **Endpoint:** `GET https://freehoroscopeapi.com/api/v1/get-horoscope/daily?sign=Aries&day=TODAY`
 - **Authentication:** None required
 - **Rate limits:** None published, but it is a free community service — please leave the refresh interval at 6 hours or higher
 - **Format:** JSON
@@ -154,7 +154,7 @@ The header is the sign and date; the reading is word-wrapped across the remainin
 
 3. **Check the API is reachable:**
    ```bash
-   curl -L "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Aries&day=TODAY"
+   curl -L "https://freehoroscopeapi.com/api/v1/get-horoscope/daily?sign=Aries&day=TODAY"
    ```
 
 ### Plugin Shows "Not Available"

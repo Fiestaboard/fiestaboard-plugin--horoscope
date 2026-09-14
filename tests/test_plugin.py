@@ -29,8 +29,6 @@ def _ok_response(text=HOROSCOPE_TEXT, date="2026-09-13", **extra):
     response = Mock()
     response.json.return_value = {
         "data": {"date": date, "period": "daily", "sign": "Aries", "horoscope": text},
-        "status": 200,
-        "success": True,
         **extra,
     }
     response.raise_for_status = Mock()
@@ -90,35 +88,6 @@ class TestFetchData:
         assert "FiestaBoard" in kwargs["headers"]["User-Agent"]
 
     @patch("plugins.horoscope.requests.get")
-    def test_legacy_horoscope_data_key(self, mock_get, plugin):
-        response = Mock()
-        response.json.return_value = {
-            "data": {"date": "Sep 13, 2026", "horoscope_data": "Legacy text. More."},
-            "status": 200,
-            "success": True,
-        }
-        response.raise_for_status = Mock()
-        mock_get.return_value = response
-
-        data = plugin.fetch_data().data
-
-        assert data["horoscope"] == "Legacy text. More."
-        assert data["short"] == "Legacy text."
-        assert data["date"] == "Sep 13, 2026"
-
-    @patch("plugins.horoscope.requests.get")
-    def test_success_false_is_unavailable(self, mock_get, plugin):
-        response = Mock()
-        response.json.return_value = {"success": False, "error": "Invalid sign: foo", "status": 400}
-        response.raise_for_status = Mock()
-        mock_get.return_value = response
-
-        result = plugin.fetch_data()
-
-        assert result.available is False
-        assert result.error == "Invalid sign: foo"
-
-    @patch("plugins.horoscope.requests.get")
     def test_http_error(self, mock_get, plugin):
         response = Mock()
         response.raise_for_status.side_effect = Exception("HTTP 500")
@@ -150,7 +119,7 @@ class TestFetchData:
     @patch("plugins.horoscope.requests.get")
     def test_malformed_response(self, mock_get, plugin):
         response = Mock()
-        response.json.return_value = {"status": 200}
+        response.json.return_value = {}
         response.raise_for_status = Mock()
         mock_get.return_value = response
 

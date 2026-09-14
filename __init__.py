@@ -1,7 +1,7 @@
 """Horoscope plugin for FiestaBoard.
 
 Displays the daily horoscope for one zodiac sign from the free
-Horoscope App API, plus locally computed sign facts (symbol, element,
+Horoscope API (freehoroscopeapi.com), plus locally computed sign facts (symbol, element,
 date range) and a deterministic daily lucky number.
 """
 
@@ -18,7 +18,7 @@ from src.plugins.base import PluginBase, PluginResult
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily"
+API_URL = "https://freehoroscopeapi.com/api/v1/get-horoscope/daily"
 USER_AGENT = "FiestaBoard (https://github.com/FiestaBoard/FiestaBoard)"
 
 DAYS = ("TODAY", "TOMORROW", "YESTERDAY")
@@ -106,17 +106,8 @@ class HoroscopePlugin(PluginBase):
                 timeout=10,
             )
             response.raise_for_status()
-            payload = response.json()
-
-            if payload.get("success") is False:
-                return PluginResult(
-                    available=False,
-                    error=payload.get("error") or "API reported failure",
-                )
-
-            data = payload.get("data") or {}
-            # The service has served the text under both keys over time.
-            text = (data.get("horoscope") or data.get("horoscope_data") or "").strip()
+            data = response.json().get("data") or {}
+            text = (data.get("horoscope") or "").strip()
             if not text:
                 return PluginResult(available=False, error="No horoscope returned from API")
 

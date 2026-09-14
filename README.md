@@ -1,6 +1,6 @@
 # Horoscope Plugin
 
-Display the daily horoscope for your zodiac sign from the free [Horoscope App API](https://horoscope-app-api.vercel.app/).
+Display the daily horoscope for your zodiac sign from the free [Horoscope API](https://freehoroscopeapi.com/).
 
 **→ [Setup Guide](./docs/SETUP.md)** - Configuration instructions
 
@@ -72,19 +72,19 @@ The reading only changes once a day, so the default refresh is 6 hours. The mini
 
 ## API
 
-This plugin uses the free [Horoscope App API](https://horoscope-app-api.vercel.app/). No API key is required.
+This plugin uses the free [Horoscope API](https://freehoroscopeapi.com/). No API key is required.
 
 ```
-GET https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Aries&day=TODAY
+GET https://freehoroscopeapi.com/api/v1/get-horoscope/daily?sign=Aries&day=TODAY
 ```
 
-The service currently redirects to `freehoroscopeapi.com` and responds with:
+Response:
 
 ```json
 {"data": {"date": "2026-09-13", "period": "daily", "sign": "Aries", "horoscope": "..."}}
 ```
 
-Older deployments returned the text under `data.horoscope_data` with `status`/`success` fields; the plugin reads either key and treats `"success": false` as unavailable.
+An unknown sign returns HTTP 400.
 
 ## Development
 

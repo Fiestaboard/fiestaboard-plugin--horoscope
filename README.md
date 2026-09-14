@@ -8,6 +8,8 @@ Display the daily horoscope for your zodiac sign from the free [Horoscope API](h
 
 The Horoscope plugin fetches the daily reading for one zodiac sign and displays it on your board. It also computes a few sign facts locally (no API call): the sign's symbol name, element, calendar date range, and a lucky number that stays the same all day and differs per sign.
 
+![Horoscope Display](./docs/board-display.png)
+
 Default display (no template needed):
 
 ```

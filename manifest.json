@@ -193,6 +193,14 @@
       ]
     }
   ],
+  "screenshots": [
+    {
+      "src": "docs/board-display.png",
+      "alt": "Horoscope displayed on a Vestaboard",
+      "caption": "Daily horoscope for your zodiac sign, with sign symbol, element, date range and a lucky number",
+      "primary": true
+    }
+  ],
   "demo": {
     "flagship": {
       "name": "Horoscope Demo",

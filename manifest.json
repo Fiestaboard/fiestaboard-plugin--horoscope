@@ -1,0 +1,257 @@
+{
+  "id": "horoscope",
+  "name": "Horoscope",
+  "version": "1.0.0",
+  "description": "Daily horoscope for your zodiac sign, with sign symbol, element, date range and a lucky number",
+  "author": "FiestaBoard Team",
+  "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--horoscope",
+  "documentation": "README.md",
+  "icon": "sparkles",
+  "category": "entertainment",
+  "min_refresh_seconds": 3600,
+  "settings_schema": {
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Enable Horoscope",
+        "default": false
+      },
+      "sign": {
+        "type": "string",
+        "title": "Zodiac Sign",
+        "description": "The sign to show the daily horoscope for",
+        "default": "Aries",
+        "enum": [
+          "Aries",
+          "Taurus",
+          "Gemini",
+          "Cancer",
+          "Leo",
+          "Virgo",
+          "Libra",
+          "Scorpio",
+          "Sagittarius",
+          "Capricorn",
+          "Aquarius",
+          "Pisces"
+        ]
+      },
+      "day": {
+        "type": "string",
+        "title": "Day",
+        "description": "Which day's horoscope to show",
+        "default": "TODAY",
+        "enum": [
+          "TODAY",
+          "TOMORROW",
+          "YESTERDAY"
+        ],
+        "enumNames": [
+          "Today",
+          "Tomorrow",
+          "Yesterday"
+        ]
+      },
+      "refresh_seconds": {
+        "type": "integer",
+        "title": "Refresh Interval (seconds)",
+        "description": "How often to re-fetch the horoscope. The text only changes once a day, so keep this high to be kind to the free service.",
+        "default": 21600,
+        "minimum": 3600,
+        "maximum": 86400
+      }
+    },
+    "required": [
+      "sign"
+    ]
+  },
+  "env_vars": [
+    {
+      "name": "HOROSCOPE_ENABLED",
+      "required": false,
+      "description": "Enable the horoscope feature",
+      "default": "false"
+    }
+  ],
+  "variables": {
+    "groups": {
+      "reading": {
+        "label": "Reading"
+      },
+      "sign": {
+        "label": "Sign"
+      }
+    },
+    "simple": {
+      "horoscope": {
+        "description": "The full daily horoscope text (use with |wrap)",
+        "type": "string",
+        "max_length": 264,
+        "group": "reading",
+        "example": "Things are moving quickly for Aries right now, with new opportunities coming up fast. Stay flexible and adapt to changing circumstances."
+      },
+      "short": {
+        "description": "First sentence of the horoscope",
+        "type": "string",
+        "max_length": 66,
+        "group": "reading",
+        "example": "Things are moving quickly for Aries right now."
+      },
+      "date": {
+        "description": "Date the horoscope is for",
+        "type": "string",
+        "max_length": 6,
+        "group": "reading",
+        "example": "Sep 13"
+      },
+      "sign": {
+        "description": "Zodiac sign name",
+        "type": "string",
+        "max_length": 11,
+        "group": "sign",
+        "example": "Aries"
+      },
+      "symbol": {
+        "description": "Sign symbol name",
+        "type": "string",
+        "max_length": 16,
+        "group": "sign",
+        "example": "The Ram"
+      },
+      "element": {
+        "description": "Sign element: Fire, Earth, Air or Water",
+        "type": "string",
+        "max_length": 5,
+        "group": "sign",
+        "example": "Fire"
+      },
+      "date_range": {
+        "description": "Calendar dates covered by the sign",
+        "type": "string",
+        "max_length": 15,
+        "group": "sign",
+        "example": "Mar 21 - Apr 19"
+      },
+      "lucky_number": {
+        "description": "Lucky number (1-99), stable for the day and different per sign",
+        "type": "integer",
+        "max_length": 2,
+        "group": "sign",
+        "example": "42"
+      }
+    }
+  },
+  "color_rules_schema": {
+    "element": {
+      "type": "match",
+      "description": "Color by the sign's element",
+      "default_rules": [
+        {
+          "condition": "==",
+          "value": "Fire",
+          "color": "red"
+        },
+        {
+          "condition": "==",
+          "value": "Earth",
+          "color": "green"
+        },
+        {
+          "condition": "==",
+          "value": "Air",
+          "color": "yellow"
+        },
+        {
+          "condition": "==",
+          "value": "Water",
+          "color": "blue"
+        }
+      ]
+    }
+  },
+  "fiestaboard_version": ">=2.10.0",
+  "teaser": "{63}ARIES TODAY",
+  "previews": [
+    {
+      "device_type": "flagship",
+      "rows": [
+        "{63}ARIES  SEP 13",
+        "THINGS ARE MOVING",
+        "QUICKLY FOR ARIES",
+        "RIGHT NOW, WITH NEW",
+        "OPPORTUNITIES COMING",
+        "UP FAST. STAY..."
+      ]
+    },
+    {
+      "device_type": "note",
+      "rows": [
+        "{63}ARIES  SEP 13",
+        "THINGS ARE",
+        "MOVING QUICK..."
+      ]
+    }
+  ],
+  "demo": {
+    "flagship": {
+      "name": "Horoscope Demo",
+      "template": [
+        "{{horoscope.sign}} {{horoscope.date}}",
+        "{{horoscope.horoscope}}",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "line_metadata": [
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": true
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        }
+      ]
+    },
+    "note": {
+      "name": "Horoscope (Note)",
+      "template": [
+        "{{horoscope.sign}}",
+        "{{horoscope.short}}",
+        ""
+      ],
+      "line_metadata": [
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": true
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        }
+      ]
+    }
+  }
+}

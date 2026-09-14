@@ -1,7 +1,7 @@
 {
   "id": "horoscope",
   "name": "Horoscope",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Daily horoscope for your zodiac sign, with sign symbol, element, date range and a lucky number",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--horoscope",
@@ -61,10 +61,7 @@
         "minimum": 3600,
         "maximum": 86400
       }
-    },
-    "required": [
-      "sign"
-    ]
+    }
   },
   "env_vars": [
     {

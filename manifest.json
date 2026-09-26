@@ -1,7 +1,7 @@
 {
   "id": "horoscope",
   "name": "Horoscope",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Daily horoscope for your zodiac sign, with sign symbol, element, date range and a lucky number",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--horoscope",
@@ -82,9 +82,9 @@
     },
     "simple": {
       "horoscope": {
-        "description": "The full daily horoscope text (use with |wrap)",
+        "description": "The full daily horoscope text (use with |wrap). Sized to the board: up to 2880 characters on the largest note_array, much less on a Note.",
         "type": "string",
-        "max_length": 264,
+        "max_length": 2880,
         "group": "reading",
         "example": "Things are moving quickly for Aries right now, with new opportunities coming up fast. Stay flexible and adapt to changing circumstances."
       },
@@ -187,6 +187,20 @@
         "{63}ARIES  SEP 13",
         "THINGS ARE",
         "MOVING QUICK..."
+      ]
+    },
+    {
+      "label": "Note Array (2x2)",
+      "device_type": "note_array",
+      "notes_wide": 2,
+      "notes_tall": 2,
+      "rows": [
+        "{63}ARIES  SEP 13",
+        "THINGS ARE MOVING QUICKLY FOR",
+        "ARIES RIGHT NOW, WITH NEW",
+        "OPPORTUNITIES COMING UP FAST.",
+        "STAY FLEXIBLE AND ADAPT TO",
+        "CHANGING CIRCUMSTANCES."
       ]
     }
   ],

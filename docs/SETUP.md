@@ -41,7 +41,7 @@ Click **Configure** and fill in:
 
 Available variables:
 
-- `{{horoscope.horoscope}}` — The full daily reading (up to 264 chars — use with `|wrap`)
+- `{{horoscope.horoscope}}` — The full daily reading (sized to your board — up to 2880 chars on the largest panel, much less on a Note — use with `|wrap`)
 - `{{horoscope.short}}` — Just the first sentence (up to 66 chars)
 - `{{horoscope.date}}` — The date the reading is for, e.g. `Sep 13`
 - `{{horoscope.sign}}` — The sign name, e.g. `Aries`
@@ -164,7 +164,7 @@ The header is the sign and date; the reading is word-wrapped across the remainin
 
 ### The Reading Looks Cut Off
 
-The full reading can run well past 264 characters. The plugin trims it to 264 with a trailing `...` so it fits a 6 x 22 board. Use `{{horoscope.short}}` if you only want the first sentence.
+The full reading can run longer than any single board can show. The plugin trims it to fit the board it's rendering on (its width x height, in tiles) with a trailing `...`, so a Flagship gets less of the reading than a large panel does. Use `{{horoscope.short}}` if you only want the first sentence, regardless of board size.
 
 ## Restart After Changes
 

@@ -11,6 +11,7 @@ from plugins.horoscope import (
     HoroscopePlugin,
     _first_sentence,
     _format_date,
+    _horoscope_capacity,
     _lucky_number,
     _wrap_lines,
 )
@@ -60,9 +61,12 @@ class TestFetchData:
 
     @patch("plugins.horoscope.requests.get")
     def test_success_values(self, mock_get, plugin):
+        # Bound to a board large enough that HOROSCOPE_TEXT (206 chars) fits
+        # whole, so this test is about the other fields, not truncation.
         mock_get.return_value = _ok_response()
 
-        data = plugin.fetch_data().data
+        with plugin._bound_board(BoardContext("note_array", rows=24, cols=120)):
+            data = plugin.fetch_data().data
 
         assert data["sign"] == "Aries"
         assert data["date"] == "Sep 13"
@@ -148,13 +152,85 @@ class TestFetchData:
         assert mock_get.call_args.kwargs["params"] == {"sign": "Aries", "day": "TODAY"}
 
     @patch("plugins.horoscope.requests.get")
-    def test_long_text_is_truncated_to_max_length(self, mock_get, plugin):
+    def test_long_text_is_truncated_to_board_capacity(self, mock_get, plugin):
+        """With no board bound, fetch_data assumes a Flagship (6x22=132)."""
         mock_get.return_value = _ok_response(text="word " * 100)
 
         data = plugin.fetch_data().data
 
-        assert len(data["horoscope"]) <= 264
+        assert len(data["horoscope"]) <= 132
         assert data["horoscope"].endswith("...")
+
+    @patch("plugins.horoscope.requests.get")
+    def test_long_text_is_truncated_to_note_capacity(self, mock_get, plugin):
+        """A Note (3x15=45) gets a much smaller budget than a Flagship."""
+        mock_get.return_value = _ok_response(text="word " * 100)
+
+        with plugin._bound_board(BoardContext("note", rows=3, cols=15)):
+            data = plugin.fetch_data().data
+
+        assert len(data["horoscope"]) <= 45
+        assert data["horoscope"].endswith("...")
+
+    @patch("plugins.horoscope.requests.get")
+    def test_horoscope_grows_with_board_size(self, mock_get, plugin):
+        """A bigger board must retain a bigger share of the reading.
+
+        Regression test for the S1 bug: the old fetch-time cap was a flat
+        264 characters, sized for a Flagship, regardless of the board a
+        plugin was actually rendering for -- a 120x24 note_array (2880-tile
+        body) got the same 264 characters as a Flagship and rendered
+        mostly blank. If this test is reverted to a flat 264-character cap
+        (independent of the board), the large-board assertion below fails:
+        with the bug restored, ``len(data_big["horoscope"])`` is capped at
+        261 (264 minus the trailing "..."), well short of the thousands of
+        characters a 120x24 board can actually hold.
+        """
+        long_text = ("Things are moving quickly for Aries right now. " * 100).strip()
+        mock_get.return_value = _ok_response(text=long_text)
+
+        with plugin._bound_board(BoardContext("note", rows=3, cols=15)):
+            small = plugin.fetch_data().data
+        with plugin._bound_board(BoardContext("note_array", rows=24, cols=120)):
+            big = plugin.fetch_data().data
+
+        assert len(small["horoscope"]) <= 45
+        assert len(big["horoscope"]) > len(small["horoscope"])
+        # The big board's cap is 24*120=2880; the old bug capped every
+        # board at 264, so this is the number that actually distinguishes
+        # "fixed" from "reverted" -- see the docstring above.
+        assert len(big["horoscope"]) > 1000
+
+    @patch("plugins.horoscope.requests.get")
+    def test_short_is_not_truncated_by_the_board_cap(self, mock_get, plugin):
+        """``short`` is a fixed-size summary; a tiny board must not mangle it.
+
+        Regression test for a second-order bug the board-derived cap could
+        introduce: computing ``short`` from the already board-capped text
+        would make it depend on the board too (and, on a Note, capacity is
+        only 45 characters -- often less than one full sentence).
+        """
+        long_text = (
+            "Things are moving quickly for Aries right now, with new opportunities. "
+            "A second sentence follows with more detail than a Note could ever hold."
+        )
+        mock_get.return_value = _ok_response(text=long_text)
+
+        with plugin._bound_board(BoardContext("note", rows=3, cols=15)):
+            data = plugin.fetch_data().data
+
+        assert data["short"] == _first_sentence(long_text)
+
+
+class TestHoroscopeCapacity:
+    def test_default_board_is_flagship_sized(self):
+        assert _horoscope_capacity(None) == 6 * 22
+
+    def test_scales_with_note(self):
+        assert _horoscope_capacity(BoardContext("note", rows=3, cols=15)) == 3 * 15
+
+    def test_scales_with_large_note_array(self):
+        assert _horoscope_capacity(BoardContext("note_array", rows=24, cols=120)) == 24 * 120
 
 
 class TestValidateConfig:
@@ -292,6 +368,60 @@ class TestFormattedDisplay:
 
         assert plugin.get_formatted_display() is None
 
+    @patch("plugins.horoscope.requests.get")
+    def test_large_note_array_fills_many_more_rows(self, mock_get, plugin):
+        """A 120x24 note_array must show far more of the reading than a Note.
+
+        Exercises ``get_formatted_display`` -- the documented (if dead-in-core)
+        hook -- through a board large enough that the old flat 264-character
+        cap would have left most of it blank.
+        """
+        long_text = ("Things are moving quickly for Aries right now. " * 100).strip()
+        mock_get.return_value = _ok_response(text=long_text)
+
+        with plugin._bound_board(BoardContext("note_array", rows=24, cols=120)):
+            lines = plugin.get_formatted_display()
+
+        assert lines is not None
+        assert len(lines) == 24
+        assert all(len(line) <= 120 for line in lines)
+        # Non-blank rows: with the bug, 264 chars barely fills 2-3 rows at
+        # 120 cols wide; fixed, most of the 24 rows should carry text.
+        assert sum(1 for line in lines if line.strip()) > 15
+
+
+class TestFormattedLinesOnResult:
+    """``PluginResult.formatted_lines`` is the path core actually renders
+
+    (``src/displays/service.py``); ``get_formatted_display()`` has no
+    caller in core. Both must be board-aware, but this one is the live one.
+    """
+
+    @patch("plugins.horoscope.requests.get")
+    def test_fetch_data_sets_formatted_lines_for_the_bound_board(self, mock_get, plugin):
+        mock_get.return_value = _ok_response()
+
+        with plugin._bound_board(BoardContext("note", rows=3, cols=15)):
+            result = plugin.fetch_data()
+
+        assert result.formatted_lines is not None
+        assert len(result.formatted_lines) == 3
+        assert all(len(line) <= 15 for line in result.formatted_lines)
+
+    @patch("plugins.horoscope.requests.get")
+    def test_fetch_data_formatted_lines_grow_with_board_size(self, mock_get, plugin):
+        long_text = ("Things are moving quickly for Aries right now. " * 100).strip()
+        mock_get.return_value = _ok_response(text=long_text)
+
+        with plugin._bound_board(BoardContext("note", rows=3, cols=15)):
+            note_lines = plugin.fetch_data().formatted_lines
+        with plugin._bound_board(BoardContext("note_array", rows=24, cols=120)):
+            panel_lines = plugin.fetch_data().formatted_lines
+
+        note_filled = sum(1 for line in note_lines if line.strip())
+        panel_filled = sum(1 for line in panel_lines if line.strip())
+        assert panel_filled > note_filled
+
 
 class TestManifest:
     def test_settings_enums_match_code(self):
@@ -308,3 +438,19 @@ class TestManifest:
     def test_color_rule_covers_every_element(self):
         rules = MANIFEST["color_rules_schema"]["element"]["default_rules"]
         assert {r["value"] for r in rules} == {e for _, e, _ in SIGNS.values()}
+
+    def test_horoscope_max_length_covers_the_largest_supported_board(self):
+        """The declared max_length must never be exceeded, even on a max array.
+
+        The largest board the platform supports is a 120x24 note_array,
+        capacity 2880 (see FiestaBoard/src/plugins/geometry_conformance.py's
+        STANDARD_GEOMETRIES). A declared bound smaller than that would be
+        dishonest -- code could legitimately emit more than the manifest
+        promises.
+        """
+        assert MANIFEST["variables"]["simple"]["horoscope"]["max_length"] >= 24 * 120
+
+    def test_manifest_has_a_note_array_preview(self):
+        previews = MANIFEST["previews"]
+        shapes = {p.get("device_type") for p in previews}
+        assert "note_array" in shapes

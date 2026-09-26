@@ -24,7 +24,7 @@ up fast. Stay...
 ## Template Variables
 
 ```
-{{horoscope.horoscope}}     # Full daily reading (up to 264 chars, use with |wrap)
+{{horoscope.horoscope}}     # Full daily reading (sized to your board, up to 2880 chars; use with |wrap)
 {{horoscope.short}}         # First sentence of the reading (up to 66 chars)
 {{horoscope.date}}          # Date the reading is for, e.g. "Sep 13"
 {{horoscope.sign}}          # Sign name, e.g. "Aries"

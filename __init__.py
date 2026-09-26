@@ -39,8 +39,28 @@ SIGNS = {
     "Pisces": ("The Fish", "Water", "Feb 19 - Mar 20"),
 }
 
-HOROSCOPE_MAX_LENGTH = 264
 SHORT_MAX_LENGTH = 66
+
+# Fallback board when a plugin method runs outside a board-scoped render
+# (self.board is None) -- a Flagship, per the platform's documented contract.
+_DEFAULT_ROWS = 6
+_DEFAULT_COLS = 22
+
+
+def _horoscope_capacity(board) -> int:
+    """Character budget for the ``horoscope`` variable, derived from *board*.
+
+    Previously this was a flat 264, sized for a Flagship (6x22) -- fine
+    there, but it silently discarded almost all of a large note_array's
+    capacity (up to 120x24 = 2880 tiles) since the same 264-character cap
+    applied no matter how big the board was. Deriving it from the board's
+    own dimensions means a bigger board gets more of the reading; a Note
+    gets a small, tight budget instead of 264 characters it could never
+    show anyway.
+    """
+    rows = board.rows if board else _DEFAULT_ROWS
+    cols = board.cols if board else _DEFAULT_COLS
+    return rows * cols
 
 
 def _first_sentence(text: str, max_length: int = SHORT_MAX_LENGTH) -> str:
@@ -71,6 +91,20 @@ def _wrap_lines(text: str, width: int, max_lines: int) -> List[str]:
     if len(lines) > max_lines:
         lines = lines[:max_lines]
         lines[-1] = lines[-1][: width - 3].rstrip() + "..."
+    return lines
+
+
+def _build_lines(sign: str, date: str, horoscope_text: str, rows: int, cols: int) -> List[str]:
+    """Header line with sign and date, then the wrapped horoscope text.
+
+    Shared by :meth:`HoroscopePlugin.fetch_data` (the live
+    ``formatted_lines`` path) and :meth:`HoroscopePlugin.get_formatted_display`
+    so the two paths can never drift apart.
+    """
+    header = f"{sign}  {date}".upper()[:cols]
+    lines = [header] + _wrap_lines(horoscope_text, cols, rows - 1)
+    while len(lines) < rows:
+        lines.append("")
     return lines
 
 
@@ -112,17 +146,31 @@ class HoroscopePlugin(PluginBase):
                 return PluginResult(available=False, error="No horoscope returned from API")
 
             raw_date = str(data.get("date") or "")
-            if len(text) > HOROSCOPE_MAX_LENGTH:
-                text = text[: HOROSCOPE_MAX_LENGTH - 3].rstrip() + "..."
+            formatted_date = _format_date(raw_date)
+
+            # `short` is a small, fixed-size summary meant for custom
+            # templates regardless of board -- take it from the untouched
+            # fetched text, before the board-sized cap below narrows `text`
+            # down to whatever a Note's tiny budget allows.
+            short = _first_sentence(text)
+
+            board = self.board
+            rows = board.rows if board else _DEFAULT_ROWS
+            cols = board.cols if board else _DEFAULT_COLS
+            capacity = _horoscope_capacity(board)
+            if len(text) > capacity:
+                text = text[: max(capacity - 3, 0)].rstrip() + "..."
 
             symbol, element, date_range = SIGNS[sign]
+            lines = _build_lines(sign, formatted_date, text, rows, cols)
             return PluginResult(
                 available=True,
+                formatted_lines=lines,
                 data={
                     "sign": sign,
-                    "date": _format_date(raw_date),
+                    "date": formatted_date,
                     "horoscope": text,
-                    "short": _first_sentence(text),
+                    "short": short,
                     "element": element,
                     "symbol": symbol,
                     "date_range": date_range,
@@ -135,19 +183,19 @@ class HoroscopePlugin(PluginBase):
             return PluginResult(available=False, error=str(e))
 
     def get_formatted_display(self) -> Optional[List[str]]:
-        """Header line with sign and date, then the wrapped horoscope text."""
-        result = self.get_data()
-        if not result.available or not result.data:
+        """Header line with sign and date, then the wrapped horoscope text.
+
+        Delegates to :meth:`fetch_data` (via :meth:`get_data`) for both the
+        text and the line-wrapping, so this dead-in-core hook never drifts
+        from the live ``formatted_lines`` path. Explicitly forwards
+        ``self.board`` -- without it, ``get_data()`` binds a fresh ``None``
+        board for the duration of the fetch and the reading gets sized for
+        a Flagship no matter what board this is actually rendering for.
+        """
+        result = self.get_data(self.board)
+        if not result.available:
             return None
-
-        rows = self.board.rows if self.board else 6
-        cols = self.board.cols if self.board else 22
-
-        header = f"{result.data['sign']}  {result.data['date']}".upper()[:cols]
-        lines = [header] + _wrap_lines(result.data["horoscope"], cols, rows - 1)
-        while len(lines) < rows:
-            lines.append("")
-        return lines
+        return result.formatted_lines
 
 
 # Export the plugin class
